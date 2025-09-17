@@ -25,7 +25,7 @@ class Item(MethodView):
                 abort(http_status_code=409, message="The item already exists.")
 
         item_id = uuid.uuid4().hex
-        items[item_id] = {**posted_item, "item_id": item_id}
+        items[item_id] = {**posted_item, "id": item_id}
         return items[item_id]
 
 

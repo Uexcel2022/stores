@@ -23,7 +23,7 @@ class Store(MethodView):
             if store.get("name") == store_data.get("name"):
                 abort(409, message="The store already exists")
 
-        new_store = {"store_id": store_id, **store_data}
+        new_store = {"id": store_id, **store_data}
         stores[store_id] = new_store
         return stores[store_id]
 
