@@ -1,7 +1,10 @@
-import uuid
+
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from db import  stores
+from sqlalchemy.exc import SQLAlchemyError
+
+from db import  db
+from models import StoreModel
 from schemas import StoreSchema
 
 blp = (
@@ -12,50 +15,47 @@ class Store(MethodView):
 
     @blp.response( 200, StoreSchema(many=True))
     def get(self):
-        return stores.values()
+        return StoreModel.query.all()
 
     @blp.arguments(StoreSchema)
     @blp.response(201,StoreSchema)
     def post(self, store_data):
-        store_id = uuid.uuid4().hex
-
-        for _, store in stores.items():
-            if store.get("name") == store_data.get("name"):
-                abort(409, message="The store already exists")
-
-        new_store = {"id": store_id, **store_data}
-        stores[store_id] = new_store
-        return stores[store_id]
+        store = StoreModel(**store_data)
+        try:
+            db.session.add(store)
+            db.session.commit()
+            return store
+        except SQLAlchemyError as e:
+            abort(500, message='An error occurred.')
 
 
-@blp.route('/stores/<string:store_id>')
+@blp.route('/stores/<int:store_id>')
 class StoreList(MethodView):
     @blp.response( 200, StoreSchema)
     def get(self,store_id):
-        store_data = stores.get(store_id)
-        if not store_data:
-            abort(404, message="The store not found.")
-        return store_data
+        return StoreModel.query.get_or_404(store_id)
+
 
     @blp.arguments(StoreSchema)
     @blp.response(200,StoreSchema)
     def put(self,store_data, store_id):
+        try:
+            db.session.query(StoreModel).filter(StoreModel.id == store_id).update(store_data)
+            db.session.commit()
+            store =  db.session.get(StoreModel,store_id)
+            if store is None:
+                abort(404, message="The store not found.")
+            return store
+        except SQLAlchemyError as e:
+            abort(500, message="An error occurred.")
 
-        if not stores.get(store_id):
-            abort(http_status_code=404, message="The store not found")
 
-        stores[store_id]['name'] = store_data["name"]
-
-        return stores[store_id]
-
-    @blp.response(204)
     def delete(self,store_id):
-        if not store_id:
-            abort(http_status_code=400, message="Please provide store id")
-
-        if not stores.get(store_id):
-            abort(http_status_code=404, message="The store not found")
-
-        stores.pop(store_id)
-
-        return {"message":"The store deleted successfully"}
+        try:
+            store = db.session.query(StoreModel).filter(StoreModel.id == store_id).delete()
+            db.session.commit()
+            if store == 0:
+                return {"message": "The store not found!"},404
+            return '', 204
+        except SQLAlchemyError as e:
+            abort(404, message="An error occurred.")
