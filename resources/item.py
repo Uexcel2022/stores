@@ -1,8 +1,7 @@
 import uuid
-from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from db import  items,stores
+from db import  items
 from schemas import ItemSchema,ItemUpdateSchema
 
 blp = (
@@ -10,16 +9,15 @@ blp = (
 
 @blp.route('/stores/items')
 class Item(MethodView):
+
+    @blp.response(200, ItemSchema(many=True))
     def get(self):
-        return {'items': list(items.values())}, 200
+        return items.values()
+
+
     @blp.arguments(ItemSchema)
+    @blp.response(201, ItemSchema)
     def post(self,posted_item):
-        # posted_item = request.get_json()
-        # if not posted_item.get("store_id") or not posted_item.get("name") or not posted_item.get("price"):
-        #     abort(http_status_code=400, message="One or more properties are missing.")
-        #
-        # if not stores.get(posted_item.get("store_id")):
-        #     abort(http_status_code=404, message="The store not found.")
 
         for _, item in items.items():
             if (posted_item.get('store_id') == item.get('store_id')
@@ -28,18 +26,20 @@ class Item(MethodView):
 
         item_id = uuid.uuid4().hex
         items[item_id] = {**posted_item, "item_id": item_id}
-        return {"item": items[item_id]}, 201
+        return items[item_id]
 
 
 @blp.route('/stores/<string:item_id>/items')
 class ItemList(MethodView):
+    @blp.response(200, ItemSchema)
     def get(self, item_id):
-        item_data = items.get(item_id)
-        if not item_data:
+        item = items.get(item_id)
+        if not item:
             abort(http_status_code=404, message="The item not found")
-        return {'item': item_data}, 200
+        return item
 
     @blp.arguments(ItemUpdateSchema)
+    @blp.response(200, ItemSchema)
     def put(self, posted_item, item_id):
         if not item_id:
             abort(http_status_code=400, message="Please provide item id")
@@ -50,9 +50,9 @@ class ItemList(MethodView):
         item = items[item_id]
         item |= posted_item
 
-        return {'item': items[item_id]}, 200
+        return items[item_id]
 
-
+    @blp.response(204)
     def delete(self, item_id):
         if not item_id:
             abort(http_status_code=400, message="Please provide item id")
@@ -62,4 +62,4 @@ class ItemList(MethodView):
 
         print(items.pop(item_id))
 
-        return {'message': 'Item delete!'}, 204
+        return {"message":"The item deleted successfully"}

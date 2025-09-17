@@ -9,9 +9,13 @@ blp = (
 
 @blp.route('/stores')
 class Store(MethodView):
+
+    @blp.response( 200, StoreSchema(many=True))
     def get(self):
-        return {"stores": list(stores.values())}
+        return stores.values()
+
     @blp.arguments(StoreSchema)
+    @blp.response(201,StoreSchema)
     def post(self, store_data):
         store_id = uuid.uuid4().hex
 
@@ -21,18 +25,20 @@ class Store(MethodView):
 
         new_store = {"store_id": store_id, **store_data}
         stores[store_id] = new_store
-        return stores[store_id], 201
+        return stores[store_id]
 
 
 @blp.route('/stores/<string:store_id>')
 class StoreList(MethodView):
+    @blp.response( 200, StoreSchema)
     def get(self,store_id):
         store_data = stores.get(store_id)
         if not store_data:
             abort(404, message="The store not found.")
-        return store_data, 200
+        return store_data
 
     @blp.arguments(StoreSchema)
+    @blp.response(200,StoreSchema)
     def put(self,store_data, store_id):
 
         if not stores.get(store_id):
@@ -40,9 +46,9 @@ class StoreList(MethodView):
 
         stores[store_id]['name'] = store_data["name"]
 
-        return {'item': stores[store_id]}, 200
+        return stores[store_id]
 
-
+    @blp.response(204)
     def delete(self,store_id):
         if not store_id:
             abort(http_status_code=400, message="Please provide store id")
@@ -52,4 +58,4 @@ class StoreList(MethodView):
 
         stores.pop(store_id)
 
-        return {'message': 'store delete!'}, 204
+        return {"message":"The store deleted successfully"}
