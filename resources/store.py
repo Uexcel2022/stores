@@ -1,7 +1,7 @@
 
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from db import  db
 from models import StoreModel
@@ -25,8 +25,10 @@ class Store(MethodView):
             db.session.add(store)
             db.session.commit()
             return store
-        except SQLAlchemyError as e:
-            abort(500, message='An error occurred.')
+        except IntegrityError:
+            abort(409, message='A store with this name already exists.')
+        except SQLAlchemyError:
+            abort(http_status_code=500, message="An error occurred while inserting an item.")
 
 
 @blp.route('/stores/<int:store_id>')
@@ -46,8 +48,10 @@ class StoreList(MethodView):
             if store is None:
                 abort(404, message="The store not found.")
             return store
-        except SQLAlchemyError as e:
-            abort(500, message="An error occurred.")
+        except IntegrityError:
+            abort(http_status_code=409, message="An item with same name already exists.")
+        except SQLAlchemyError:
+            abort(http_status_code=500, message="An error occurred while inserting an item.")
 
 
     def delete(self,store_id):
@@ -57,5 +61,5 @@ class StoreList(MethodView):
             if store == 0:
                 return {"message": "The store not found!"},404
             return '', 204
-        except SQLAlchemyError as e:
-            abort(404, message="An error occurred.")
+        except SQLAlchemyError:
+            abort(http_status_code=500, message="An error occurred while inserting an item.")

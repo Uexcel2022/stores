@@ -1,7 +1,7 @@
 
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from db import db
 
@@ -25,8 +25,10 @@ class Item(MethodView):
            db.session.add(item)
            db.session.commit()
            return item
+       except IntegrityError as e:
+            abort(http_status_code=409,message="An item with same name already exists.")
        except SQLAlchemyError as e:
-            abort(http_status_code=500,message="An error occurred!")
+            abort(http_status_code=500,message="An error occurred while inserting an item.")
 
 @blp.route('/stores/<int:item_id>/items')
 class ItemList(MethodView):
@@ -43,8 +45,8 @@ class ItemList(MethodView):
             db.session.query(ItemModel).filter(ItemModel.id == item_id).update(posted_item)
             db.session.commit()
             return db.session.get(ItemModel,item_id)
-        except SQLAlchemyError as e:
-            abort(http_status_code=500, message="The item doesn't exist!")
+        except IntegrityError as e:
+            abort(http_status_code=409, message="An item with same name already exists.")
 
     def delete(self, item_id):
         try:
