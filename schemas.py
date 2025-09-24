@@ -21,7 +21,7 @@ class PlainTag(Schema):
 #     tag_id = fields.Int(required=True)
 
 class ItemUpdateSchema(Schema):
-    name = fields.Int(required=True)
+    name = fields.Str(required=True)
     price = fields.Float(required=True)
 
 class ItemSchema(PlainItemSchema):
@@ -49,7 +49,3 @@ class UserSchema(Schema):
     username = fields.Str(required=True)
     password = fields.Str(load_only=True, validate=validate.Length(min=6,max=16))
 
-
-class TokenSchema(Schema):
-    access_token = fields.Str()
-    token_type = fields.Str()

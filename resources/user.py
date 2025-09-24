@@ -1,15 +1,15 @@
-import jwt
+
 from flask_smorest import Blueprint, abort
 from  flask.views import MethodView
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy.exc import SQLAlchemyError
-from flask_jwt_extended import create_access_token, get_jwt
+from flask_jwt_extended import create_access_token, get_jwt,create_refresh_token,get_jwt_identity
 from flask_jwt_extended import jwt_required
 
 from db import db
 from models import UserModel
 from blocked_jwt import BLOCKlIST
-from schemas import UserSchema, TokenSchema
+from schemas import UserSchema
 
 blp = Blueprint('users', __name__, description="User Related APIs Operations")
 
@@ -39,17 +39,22 @@ class UserRegistration(MethodView):
 @blp.route('/login')
 class UserLogin(MethodView):
     @blp.arguments(UserSchema)
-    @blp.response(200,TokenSchema)
     def post(self,user_data):
         user = UserModel.query.filter_by(username=user_data["username"]).first()
         if not user or not pbkdf2_sha256.verify(user_data["password"], user.password):
             abort(401, messages =f"Invalid credentials.")
-        token = create_access_token(identity= str(user.id))
-        access_token = TokenSchema()
-        access_token.access_token = token
-        access_token.token_type = 'bearer'
+        access_token = create_access_token(identity= str(user.id),fresh= True)
+        refresh_token = create_refresh_token(identity= str(user.id))
+        return {"access_token": access_token,"refresh_token":refresh_token, "type": "Bearer"}, 200
 
-        return access_token
+@blp.route('/refresh')
+class RefreshToken(MethodView):
+    @jwt_required(refresh=True)
+    def post(self):
+        current_user = get_jwt_identity()
+        new_token = create_access_token(identity=current_user,fresh= False)
+        return {"access_token": new_token,"type":"Bearer"},200
+
 
 @blp.route('/logout')
 class Logout(MethodView):

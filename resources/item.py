@@ -46,11 +46,14 @@ class ItemList(MethodView):
         try:
             db.session.query(ItemModel).filter(ItemModel.id == item_id).update(posted_item)
             db.session.commit()
-            return db.session.get(ItemModel,item_id)
+            item = db.session.get(ItemModel,item_id)
+            if item is None:
+                abort(404,message='The item not found.')
+            return item
         except IntegrityError as e:
             abort(http_status_code=409, message="An item with same name already exists.")
 
-    @jwt_required()
+    @jwt_required(fresh=True)
     def delete(self, item_id):
         try:
             item = db.session.query(ItemModel).filter(ItemModel.id == item_id).delete()
