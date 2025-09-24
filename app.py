@@ -1,15 +1,14 @@
 import os
-import uuid
-
-from flask import Flask
+from flask import Flask, jsonify
 from flask_smorest import Api
-from sqlalchemy.testing.config import db_url
-
+from flask_jwt_extended import JWTManager
 from db import db
-import models
 from resources.store import blp  as store_blueprint
 from resources.item import blp as item_blueprint
 from resources.tag import blp as tag_blueprint
+from resources.user import blp as user_blueprint
+from blocked_jwt import BLOCKlIST
+
 
 def create_app(db_url=None):
     app = Flask(__name__)
@@ -25,6 +24,42 @@ def create_app(db_url=None):
     db.init_app(app)
     api = Api(app)
 
+    app.config['JWT_SECRET_KEY'] = "323226110414990525823922147444992522433"
+    jwt = JWTManager(app)
+
+    @jwt.token_in_blocklist_loader
+    def revoked_jwt_loader(jwt_header, jwt_payload):
+        return jwt_payload['jti'] in BLOCKlIST
+
+    @jwt.revoked_token_loader
+    def revoked_jwt_response(jwt_header, jwt_payload):
+        return jsonify({
+            "description": "The token has been revoked.", "error": "token_revoked."
+        }
+    ),401
+
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return (jsonify({
+            "description": "Request token is missing.",
+            "error": "Authorization required",
+        }
+    )),401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(jwn_header, jwt_payload):
+        return (jsonify({
+            "description": "The access token signature verification failed.",
+            "error": "Invalid token",
+        })),401
+
+    @jwt.expired_token_loader
+    def expired_token_callback(error,r):
+        return (jsonify({
+            "description": "The Token has expired",
+            "error": "Token_expired",
+        })),401
+
     @app.before_request
     def before_request():
         db.create_all()
@@ -32,6 +67,8 @@ def create_app(db_url=None):
     api.register_blueprint(store_blueprint)
     api.register_blueprint(item_blueprint)
     api.register_blueprint(tag_blueprint)
+    api.register_blueprint(user_blueprint)
+
     return app
 
 

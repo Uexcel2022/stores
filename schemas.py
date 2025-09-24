@@ -1,5 +1,6 @@
 
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
+
 
 class PlainStoreSchema(Schema):
     id = fields.Int(dump_only=True)
@@ -42,3 +43,13 @@ class TagAndItemSchema(Schema):
     message = fields.Str()
     item = fields.Nested(ItemSchema())
     Tags = fields.Nested(TagSchema())
+
+class UserSchema(Schema):
+    id = fields.Int(dump_only=True)
+    username = fields.Str(required=True)
+    password = fields.Str(load_only=True, validate=validate.Length(min=6,max=16))
+
+
+class TokenSchema(Schema):
+    access_token = fields.Str()
+    token_type = fields.Str()

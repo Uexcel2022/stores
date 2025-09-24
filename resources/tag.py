@@ -2,7 +2,7 @@ from flask_smorest import Blueprint, abort
 from flask.views import MethodView
 from sqlalchemy.exc import IntegrityError,SQLAlchemyError
 from models import TagModel, StoreModel, ItemModel
-from schemas import TagSchema,TagAndItemSchema
+from schemas import TagSchema
 from db import db
 blp = Blueprint('tags', __name__, description='tag related operations')
 
@@ -67,7 +67,7 @@ class  TagList(MethodView):
             abort(400, message='Database Error')
 
 
-@blp.route('/item/<int:item_id/tag/<int:tag_id>')
+@blp.route('/item/<int:item_id>/tag/<int:tag_id>')
 class LinkTagToItem(MethodView):
 
     @blp.response(201,TagSchema)

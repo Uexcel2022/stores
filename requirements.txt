@@ -4,3 +4,5 @@ python-dotenv
 marshmallow~=4.0.1
 sqlalchemy
 flask-sqlalchemy
+flask-jwt-extended
+passlib
