@@ -8,6 +8,7 @@ from resources.item import blp as item_blueprint
 from resources.tag import blp as tag_blueprint
 from resources.user import blp as user_blueprint
 from blocked_jwt import BLOCKlIST
+from flask_migrate import Migrate
 
 
 def create_app(db_url=None):
@@ -22,6 +23,7 @@ def create_app(db_url=None):
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL","sqlite:///app.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
+    migrate = Migrate(app, db)
     api = Api(app)
 
     app.config['JWT_SECRET_KEY'] = "323226110414990525823922147444992522433"
@@ -67,9 +69,9 @@ def create_app(db_url=None):
             "error": "Token_expired",
         })),401
 
-    @app.before_request
-    def before_request():
-        db.create_all()
+    # @app.before_request
+    # def before_request():     //commented because we now use flask migrate to create db
+    #     db.create_all()
 
     api.register_blueprint(store_blueprint)
     api.register_blueprint(item_blueprint)
